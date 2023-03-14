@@ -1,0 +1,110 @@
+---
+title: "Memory Improvement Modeling"
+author: "Joey Rudoler"
+format: html
+editor: visual
+toc: true
+toc-location: left
+toc-title: "Jump To:"
+---
+
+## Loading Data
+
+```{r}
+#| output: false
+#| echo: false
+library(tidyverse)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(broom.mixed)
+```
+
+```{r}
+df <- read.csv("~/Downloads/memory_improvement_data.csv")
+head(df, 5)
+df$trial_type <- tolower(df$trial_type)
+df <- df %>% select(!trial_code) %>% group_by(subject, session) %>% pivot_wider(names_from = trial_type, values_from = c(recalled, probability))
+print(df)
+# df %>% group_by(subject, session)
+```
+
+## Data Viz
+
+```{r}
+plot <- ggplot(aes(x=score, y=recalled_pos-recalled_neg), data = df) + geom_point()
+print(plot)
+
+```
+
+## Modeling
+
+```{r}
+#| echo: true
+# model <- lmer(recalled ~ trial_code*signif.05 + (trial_code|subject), data = df)
+# model <- lmer(recalled ~ trial_code*signif.05 + score+ (1|subject), data = df)
+# summary(model)
+
+# model2 <- lmer()
+
+mean_vals = df %>% group_by(subject) %>% summarise(sub_recalled_sham=mean(recalled_sham), sub_recalled_pos=mean(recalled_pos), sub_recalled_neg=mean(recalled_neg), sub_score=mean(score))
+mean_vals$sub_diff = mean_vals$sub_recalled_pos - mean_vals$sub_recalled_neg
+df <- merge(df, mean_vals, by = c("subject"))
+df$delta_sham = df$recalled_sham - df$sub_recalled_sham
+df$delta_neg = df$recalled_neg - df$sub_recalled_neg
+df$delta_score = df$score - df$sub_score
+df$diff = df$recalled_pos - df$recalled_sham
+
+# subject model
+sub_model_pos_sham <- lm(sub_recalled_pos ~ sub_recalled_sham + sub_score, data=mean_vals)
+summary(sub_model_pos_sham)
+
+sub_model_pos_neg <- lm(sub_recalled_pos ~ sub_recalled_neg + sub_score, data=mean_vals)
+summary(sub_model_pos_neg)
+
+sub_model_pos_neg_interact <- lm(sub_recalled_pos ~ sub_recalled_neg*sub_score, data=mean_vals)
+summary(sub_model_pos_neg_interact)
+
+model <- lmer(recalled_pos ~ recalled_sham + score + (1|subject), data = df)
+summary(model)
+
+interaction_model <- lmer(recalled_pos ~ recalled_sham*score + (1|subject), data = df)
+summary(interaction_model)
+
+
+# Differences model proposed by David
+#singular
+# full_pos_model <- lmer(recalled_pos ~ sub_recalled_sham + delta_sham + sub_score + delta_score + (delta_sham | subject) + (0 + delta_score | subject), data=df)
+# summary(full_pos_model)
+# full_pos_model <- lmer(recalled_pos ~ sub_recalled_sham + delta_sham + sub_score + delta_score + (delta_sham + delta_score || subject), data=df)
+# summary(full_pos_model)
+
+full_pos_model2 <- lmer(recalled_pos ~ sub_recalled_sham + delta_sham + sub_score + delta_score + (delta_sham | subject), data=df)
+summary(full_pos_model2)
+
+# full_neg_model <- lmer(recalled_neg ~ sub_recalled_sham + delta_sham + sub_score + delta_score + (delta_sham | subject) + (0 + delta_score | subject), data=df)
+# summary(full_neg_model)
+# 
+# full_neg_model <- lmer(recalled_neg ~ sub_recalled_sham + delta_sham + sub_score + delta_score + (delta_sham + delta_score || subject), data=df)
+# summary(full_neg_model)
+
+full_neg_model <- lmer(recalled_neg ~ sub_recalled_sham + delta_sham + sub_score + delta_score + (delta_sham | subject), data=df)
+summary(full_neg_model)
+
+#singular
+# full_posneg_model <- lmer(recalled_pos ~ sub_recalled_neg + delta_neg + sub_score + delta_score + (delta_neg | subject) + (0 + delta_score | subject), data=df)
+# summary(full_posneg_model)
+
+#singular
+# full_posneg_model <- lmer(recalled_pos ~ sub_recalled_neg + delta_neg + sub_score + delta_score + (delta_neg + delta_score || subject), data=df)
+# summary(full_posneg_model)
+# 
+# full_posneg_model2 <- lmer(recalled_pos ~ sub_recalled_neg + delta_neg + sub_score + delta_score + (delta_neg || subject), data=df)
+# summary(full_posneg_model2)
+
+
+full_posneg_model3 <- lmer(recalled_pos ~ sub_recalled_neg + delta_neg + sub_score + delta_score + (delta_neg | subject), data=df)
+summary(full_posneg_model3)
+posneg_model_df <- tidy(full_posneg_model3)
+
+```
