@@ -6,9 +6,7 @@ library(broom.mixed)
 df <- read.csv("Downloads/processed_events_NiclsCourierClosedLoop.csv")
 
 df <- df |> filter(type == "WORD", trial_type != "NoStim")
-levels(df$trial_type) <- c("Sham", "Neg", "Pos")
 df$trial_type <- factor(df$trial_type, levels = c("Sham", "Neg", "Pos"))
-
 
 # Positive vs. Negative ---------------------------------------------------
 

@@ -18,6 +18,8 @@ library(ggplot2)
 library(lme4)
 library(lmerTest)
 library(broom.mixed)
+library(emmeans)
+library(car)
 ```
 
 ```{r}
@@ -39,6 +41,7 @@ print(plot)
 
 ## Modeling
 
+More complicated stuff
 ```{r}
 #| echo: true
 # model <- lmer(recalled ~ trial_code*signif.05 + (trial_code|subject), data = df)
@@ -54,6 +57,22 @@ df$delta_sham = df$recalled_sham - df$sub_recalled_sham
 df$delta_neg = df$recalled_neg - df$sub_recalled_neg
 df$delta_score = df$score - df$sub_score
 df$diff = df$recalled_pos - df$recalled_sham
+
+## three-way subject model
+data <- read.csv("~/Downloads/processed_events_NiclsCourierClosedLoop.csv") %>%
+  filter(type == "WORD", trial_type != "NoStim")
+mean_scores <- mean_vals %>% select(subject, sub_score)
+data <- left_join(data, mean_scores, by=c("subject"))
+
+sub_recalled_score_df <- data %>% group_by(subject, trial_type, sub_score) %>%
+  summarize(sub_recalled = mean(recalled))
+sub_recalled_score_df$trial_type <- factor(sub_recalled_score_df$trial_type, levels = c("Sham", "Neg", "Pos"))
+sub_recalled_score_df$sub_score_cent <- sub_recalled_score_df$sub_score - .5
+three_way_model <- lmer(sub_recalled ~ trial_type * sub_score_cent + (1 | subject), data=sub_recalled_score_df)
+summary(three_way_model)
+anova(three_way_model)
+emtrends(three_way_model, pairwise ~ trial_type, var = "sub_score_cent")
+
 
 # subject model
 sub_model_pos_sham <- lm(sub_recalled_pos ~ sub_recalled_sham + sub_score, data=mean_vals)
