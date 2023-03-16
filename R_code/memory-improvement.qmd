@@ -67,11 +67,16 @@ data <- left_join(data, mean_scores, by=c("subject"))
 sub_recalled_score_df <- data %>% group_by(subject, trial_type, sub_score) %>%
   summarize(sub_recalled = mean(recalled))
 sub_recalled_score_df$trial_type <- factor(sub_recalled_score_df$trial_type, levels = c("Sham", "Neg", "Pos"))
-sub_recalled_score_df$sub_score_cent <- sub_recalled_score_df$sub_score - .5
-three_way_model <- lmer(sub_recalled ~ trial_type * sub_score_cent + (1 | subject), data=sub_recalled_score_df)
+sub_recalled_score_df$trial_type_neg <- factor(sub_recalled_score_df$trial_type, levels = c("Neg", "Sham", "Pos"))
+# sub_recalled_score_df$sub_score_cent <- sub_recalled_score_df$sub_score - .5
+sub_recalled_score_df$sub_score_max <- sub_recalled_score_df$sub_score - max(sub_recalled_score_df$sub_score)
+# three_way_model <- lmer(sub_recalled ~ trial_type * sub_score_cent + (1 | subject), data=sub_recalled_score_df)
+three_way_model <- lmer(sub_recalled ~ trial_type_neg * sub_score_max + (1 | subject), data=sub_recalled_score_df)
 summary(three_way_model)
 anova(three_way_model)
-emtrends(three_way_model, pairwise ~ trial_type, var = "sub_score_cent")
+emtrends(three_way_model, pairwise ~ trial_type_neg, var = "sub_score_max")
+three_way.emm.ssm <- emmeans(three_way_model, "trial_type_neg", at = list(sub_score_max = c(0)))
+contrast(three_way.emm.ssm, by = "sub_score_max")
 
 
 # subject model
