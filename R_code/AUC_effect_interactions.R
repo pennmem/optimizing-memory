@@ -1,8 +1,9 @@
 library(lme4)
 library(lmerTest)
 library(emmeans)
+library(tidyverse)
 
-df <- read.csv("~/Downloads/processed_events_with_AUC.csv")
+df <- read.csv("Documents/GitHub/optimizing-memory/data/processed_events_with_AUC.csv")
 data <- df |>
   filter(type == "WORD", trial_type != "NoStim")
 
