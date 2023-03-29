@@ -17,8 +17,16 @@ sub_recalled_score_df <- data %>% group_by(subject, trial_type, AUC) |>
 three_way_model <- lmer(sub_recalled ~ trial_type * AUC_cent + (1 | subject), data=sub_recalled_score_df)
 summary(three_way_model)
 
-broom_three_way_model <- tidy(three_way_model)
+broom_three_way_model <- tidy(three_way_model, conf.int=TRUE)
 write.csv(broom_three_way_model, file = "~/optimizing-memory/results/three_way_model_neg_intercept.csv")
+
+ggplot(broom_three_way_model, aes(x=reorder(term, estimate), y=estimate)) +
+  geom_errorbar(aes(ymin=conf.low, ymax=conf.high), 
+                width = 0.2,size  = 1,
+                position = "dodge", color="turquoise4") +
+  geom_hline(yintercept = 0, color = "red", size = 1) +
+  geom_point() + coord_flip()
+
 
 #ANOVA for interaction terms
 anova(three_way_model)
