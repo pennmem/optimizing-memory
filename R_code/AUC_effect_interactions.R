@@ -4,11 +4,11 @@ library(emmeans)
 library(tidyverse)
 library(broom.mixed)
 
-df <- read.csv("~/optimizing-memory/data/processed_events_with_AUC.csv")
-data <- df |>
+events <- read.csv("~/Documents/GitHub/optimizing-memory/data/processed_events_with_AUC.csv")
+data <- events |>
   filter(type == "WORD", trial_type != "NoStim")
 
-sub_recalled_score_df <- data %>% group_by(subject, trial_type, AUC) |>
+sub_recalled_score_df <- data |> group_by(subject, trial_type, AUC) |>
   summarize(sub_recalled = mean(recalled)) |>
   mutate(
     trial_type = factor(trial_type, levels = c("Neg", "Sham", "Pos")),
@@ -46,4 +46,9 @@ trial_type.emm <- emmeans(RG.max_AUC, pairwise ~ trial_type)
 summary(trial_type.emm, adjust = "none")
 #tukey adjustment (probably correct)
 summary(trial_type.emm)
+plot(trial_type.emm)
+plot(trial_type.emm, comparisons = TRUE)
+pwpp(trial_type.emm)
+
+emmeans(RG.max_AUC, ~ trial_type)
 
