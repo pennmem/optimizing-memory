@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 plt.rcParams['pdf.fonttype'] = 42
 import seaborn as sns
 import pandas as pd
-from pd_to_pb import pandas_to_pybeh as pb
 import scipy as scp
 import pickle
 from ptsa.data.filters import MorletWaveletFilter, ButterworthFilter
