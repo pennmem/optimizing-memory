@@ -4,7 +4,7 @@ library(emmeans)
 library(tidyverse)
 library(broom.mixed)
 
-events <- read.csv("~/Documents/GitHub/optimizing-memory/data/processed_events_with_AUC.csv")
+events <- read.csv("~/optimizing-memory/data/processed_events_with_AUC.csv")
 data <- events |>
   filter(type == "WORD", trial_type != "NoStim")
 
@@ -52,3 +52,12 @@ pwpp(trial_type.emm)
 
 emmeans(RG.max_AUC, ~ trial_type)
 
+
+## fitting linear instead of categorical model,  no correction for multiple comparisons needed.
+
+sub_recalled_score_df$trial_type_num <- sub_recalled_score_df$trial_type %>% as.numeric() - 2
+linear_model <- lmer(sub_recalled ~ trial_type_num * AUC_cent + (1 | subject), data=sub_recalled_score_df)
+summary(linear_model)
+
+broom_linear_model <- tidy(linear_model, conf.int=TRUE)
+write.csv(broom_linear_model, file = "~/optimizing-memory/results/linear_model.csv")
