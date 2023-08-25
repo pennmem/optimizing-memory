@@ -69,5 +69,5 @@ plot(trial_type_num.emm)
 plot(trial_type_num.emm, comparisons = TRUE)
 pwpp(trial_type_num.emm)
 
-broom_max_auc_emmeans <- tidy(three_way_model, conf.int=TRUE)
+broom_max_auc_emmeans <- tidy(trial_type_num.emm, conf.int=TRUE)
 write.csv(broom_max_auc_emmeans, file = "~/optimizing-memory/results/max_auc_emmeans_linear.csv")
