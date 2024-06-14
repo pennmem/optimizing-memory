@@ -4,6 +4,7 @@ import sys
 sys.path.append('/home1/jrudoler/src/')
 import cmlreaders as cml
 import numpy as np
+import random
 import matplotlib.pyplot as plt
 plt.rcParams['pdf.fonttype'] = 42
 import seaborn as sns
@@ -14,6 +15,9 @@ from ptsa.data.filters import MorletWaveletFilter, ButterworthFilter
 from ptsa.data.timeseries import TimeSeries
 from copy import deepcopy
 from numpy.random import shuffle
+random_seed = 56
+np.random.seed(random_seed)
+random.seed(random_seed)
 
 # ML stuff
 from classifier_io import ClassifierModel
@@ -47,6 +51,25 @@ def n_list_normalization(n_lists, subject_list, c_list = np.logspace(np.log10(2e
 
     with open(f"{n_lists}_list_normalization.pkl", "wb") as f:
         pickle.dump(result_dict, f)
+
+def computeCV(full_pows, full_evs, c_list):
+    # Selecting overall parameter using nested CV, with LOLO cross validation to get scores for every
+    # parameter and session, then averaging across sessions and taking the paramter which yeilds the highest
+    # average AUC
+    all_scores = []
+    for sess in full_evs.session.unique():
+        out_mask = full_evs.session == sess
+        in_mask = ~out_mask
+        score_list = []
+        for c in c_list:
+            model = LogisticRegression(penalty='l2', C=c, solver='liblinear')
+            model.fit(full_pows[in_mask], full_evs[in_mask].recalled.astype(int))
+            probs = model.predict_proba(full_pows[out_mask])[:, 1]
+            score_list.append(roc_auc_score(full_evs[out_mask].recalled.astype(int), probs))
+        all_scores.append(score_list)
+    # return scores matrix shaped sessions x hyperparameter
+    scores_mat = np.stack(all_scores)
+    return scores_mat
 
 def NestedLOGO(data, estimator, param_grid, inner_cv_group='session', outer_cv_group='session', client=None, verbose=True):
     outer_cv = LeaveOneGroupOut()
