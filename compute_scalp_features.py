@@ -20,7 +20,7 @@ def compute_scalp_features(subject, settings_path, save_path='/scratch/jrudoler/
     """
     settings = da.Settings.Load(settings_path)
     data = cml.get_data_index(kind = 'ltp')
-    data = data[(data['experiment']==settings.experiment)&(data['subject']==subject)].sort_values('session').reset_index()
+    data = data[(data['experiment']==settings['experiment'])&(data['subject']==subject)].sort_values('session').reset_index()
 
     feats = []
     for i, row in data.iterrows():
@@ -32,17 +32,17 @@ def compute_scalp_features(subject, settings_path, save_path='/scratch/jrudoler/
         if len(word_evs)==0:
             continue # sync pulses not recorded
         eeg = r.load_eeg(word_evs,
-                         rel_start=settings.rel_start - settings.buffer_time,
-                         rel_stop=settings.rel_stop + settings.buffer_time,
-                         clean=settings.clean
+                         rel_start=settings['rel_start'] - settings['buffer_time'],
+                         rel_stop=settings['rel_stop'] + settings['buffer_time'],
+                         clean=settings['clean']
                         ).to_ptsa()
         # select relevant channels
-        if settings.reference == 'average':
+        if settings['reference'] == 'average':
             eeg = eeg[:, :128]
-            if eeg.channel[0].str.startswith('E') and not settings.clean: # EGI system
+            if eeg.channel[0].str.startswith('E') and not settings['clean']: # EGI system
                 eeg.drop_sel({'channel':['E8', 'E25', 'E126', 'E127']})
             eeg -= eeg.mean('channel')
-        elif settings.reference == 'bipolar':
+        elif settings['reference'] == 'bipolar':
             bipolar_pairs = np.loadtxt("/home1/jrudoler/biosemi_cap_bipolar_pairs.txt", dtype=str)
             mapper = MonopolarToBipolarMapper(bipolar_pairs, channels_dim='channel')
             eeg = eeg.filter_with(mapper)
@@ -54,12 +54,12 @@ def compute_scalp_features(subject, settings_path, save_path='/scratch/jrudoler/
         eeg = ButterworthFilter(filt_type='stop', freq_range=[118, 122], order=4).filter(eeg)
         # highpass filter to account for drift
         eeg = ButterworthFilter(filt_type='highpass', freq_range=1).filter(eeg)
-        pows = MorletWaveletFilter(settings.freqs,
-                                   width=settings.width,
+        pows = MorletWaveletFilter(settings['freqs'],
+                                   width=settings['width'],
                                    output='power',
                                    cpus=25).filter(eeg)
         del eeg
-        pows = pows.remove_buffer(settings.buffer_time / 1000) + np.finfo(float).eps/2.
+        pows = pows.remove_buffer(settings['buffer_time'] / 1000) + np.finfo(float).eps/2.
         pows = pows.reduce(np.log10)
         # swap order of events and frequencies --> result is events x frequencies x channels x time
         # next, average over time
@@ -71,7 +71,7 @@ def compute_scalp_features(subject, settings_path, save_path='/scratch/jrudoler/
         del pows
     feats = concat(feats, dim='event')
     feats = feats.assign_attrs(settings.__dict__)
-    if settings.save:
+    if settings['save']:
         feats.to_hdf(save_path+f'{subject}_feats.h5')
     return feats
 
@@ -83,19 +83,19 @@ def compute_raw_event_features(events, subject, settings_path, save_path='/scrat
     settings = da.Settings.Load(settings_path)
     feats = []
     for session, evs in events.groupby("session"):
-        r = cml.CMLReader(subject=subject, experiment=settings.experiment, session=session)
+        r = cml.CMLReader(subject=subject, experiment=settings['experiment'], session=session)
         eeg = r.load_eeg(evs,
-                         rel_start=settings.rel_start - settings.buffer_time,
-                         rel_stop=settings.rel_stop + settings.buffer_time,
-                         clean=settings.clean
+                         rel_start=settings['rel_start'] - settings['buffer_time'],
+                         rel_stop=settings['rel_stop'] + settings['buffer_time'],
+                         clean=settings['clean']
                         ).to_ptsa()
         # select relevant channels
-        if settings.reference == 'average':
+        if settings['reference'] == 'average':
             eeg = eeg[:, :128]
-            if eeg.channel[0].str.startswith('E') and not settings.clean: # EGI system
+            if eeg.channel[0].str.startswith('E') and not settings['clean']: # EGI system
                 eeg.drop_sel({'channel':['E8', 'E25', 'E126', 'E127']})
             eeg -= eeg.mean('channel')
-        elif settings.reference == 'bipolar':
+        elif settings['reference'] == 'bipolar':
             bipolar_pairs = np.loadtxt("/home1/jrudoler/biosemi_cap_bipolar_pairs.txt", dtype=str)
             mapper = MonopolarToBipolarMapper(bipolar_pairs, channels_dim='channel')
             eeg = eeg.filter_with(mapper)
@@ -107,12 +107,12 @@ def compute_raw_event_features(events, subject, settings_path, save_path='/scrat
         eeg = ButterworthFilter(filt_type='stop', freq_range=[118, 122], order=4).filter(eeg)
         # highpass filter to account for drift
         eeg = ButterworthFilter(filt_type='highpass', freq_range=1).filter(eeg)
-        pows = MorletWaveletFilter(settings.freqs,
-                                   width=settings.width,
+        pows = MorletWaveletFilter(settings['freqs'],
+                                   width=settings['width'],
                                    output='power',
                                    cpus=25).filter(eeg)
         del eeg
-        pows = pows.remove_buffer(settings.buffer_time / 1000) + np.finfo(float).eps/2.
+        pows = pows.remove_buffer(settings['buffer_time'] / 1000) + np.finfo(float).eps/2.
         pows = pows.reduce(np.log10)
         # swap order of events and frequencies --> result is events x frequencies x channels x time
         # next, average over time
@@ -123,7 +123,7 @@ def compute_raw_event_features(events, subject, settings_path, save_path='/scrat
         del pows
     feats = concat(feats, dim='event')
     feats = feats.assign_attrs(settings.__dict__)
-    if settings.save:
+    if settings['save']:
         feats.to_hdf(save_path+f'{subject}_raw_feats.h5')
     return feats
 
