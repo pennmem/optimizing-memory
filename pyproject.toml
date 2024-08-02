@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "optimizing-memory"
+version = "0.1.0"
+description = ""
+authors = ["Joseph Rudoler <jhrudoler@gmail.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+mne = "^1.7.1"
+numpy = "^2.0.1"
+swig = "^4.2.1"
+traits = "^6.4.3"
+scipy = "^1.10"
+dask = "^2024.7.1"
+mne-bids = "^0.15.0"
+xarray = "^2024.7.0"
+openneuro-py = "^2024.2.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+prefer-active-python = true
