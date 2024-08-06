@@ -22,7 +22,7 @@ from scipy.stats import zscore
 def mne_to_ptsa(ep):
     """Create an PTSA TimeSeries (essentially xarray) version of MNE epoch data"""
     assert ep.metadata is not None, "Please define mne.Epoch.metadata"
-    x = TimeSeries(
+    ts = TimeSeries(
         ep.get_data(copy=True),
         dims=("event", "channel", "time"),
         coords={
@@ -31,25 +31,32 @@ def mne_to_ptsa(ep):
             "time": ep.times,
             "samplerate": ep.info["sfreq"],
         },
+        name="data",
     )
-    return x
+    ts = ts.reset_index("event")
+    return ts
 
 
 def compute_scalp_features(
     subject,
     settings_path,
     normalize=False,
-    save_path="/scratch/jrudoler/NICLS/report_data/closed_loop/encoding_powers/",
+    bids_root="~/data/nicls_bids/",
+    save_path="~/data/features/",
 ):
     """
     Compute log-transformed powers, averaged over time and stacked as (frequency, channel) to create features
     Normaize within each session.
     """
+    # expand paths
+    bids_root = os.path.expanduser(bids_root)
+    settings_path = os.path.expanduser(settings_path)
+    save_path = os.path.expanduser(save_path)
+
     # load settings
-    with open(os.path.expanduser(settings_path), "rb") as f:
+    with open(settings_path, "rb") as f:
         settings = pickle.load(f)
     # find all sessions for subject
-    bids_root = os.path.expanduser(bids_root)
     bids_paths = find_matching_paths(
         bids_root,
         subjects=subject,
@@ -121,18 +128,18 @@ def compute_scalp_features(
         # next, average over time
         pows = pows.transpose("event", "frequency", "channel", "time").mean("time")
         # reshape as events x features
-        pows = pows.stack(features=("frequency", "channel"))
+        pows = pows.stack(features=("frequency", "channel")).reset_index("features")
         # normalize along event axis
         if normalize:
             pows = pows.reduce(func=zscore, dim="event", keep_attrs=True, ddof=1)
         feats.append(pows)
         del pows
     feats = concat(feats, dim="event")
-    settings.__dict__.update({"normalize": normalize})
-    feats = feats.assign_attrs(settings.__dict__)
+    settings.update({"normalize": int(normalize)})
+    feats = feats.assign_attrs(settings)
     suffix = "_feats.h5" if normalize else "_raw_feats.h5"
     if settings["save"]:
-        feats.to_hdf(save_path + f"{subject}_{suffix}")
+        feats.to_hdf(os.path.join(save_path, f"{subject}_{suffix}"))
     return feats
 
 
