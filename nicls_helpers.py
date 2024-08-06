@@ -1,7 +1,5 @@
 import warnings
 warnings.simplefilter('ignore')
-import sys
-sys.path.append('/home1/jrudoler/src/')
 import cmlreaders as cml
 import numpy as np
 import random
@@ -11,7 +9,6 @@ import seaborn as sns
 import pandas as pd
 import scipy as scp
 import pickle
-from ptsa.data.filters import MorletWaveletFilter, ButterworthFilter
 from ptsa.data.timeseries import TimeSeries
 from copy import deepcopy
 from numpy.random import shuffle
@@ -20,13 +17,10 @@ np.random.seed(random_seed)
 random.seed(random_seed)
 
 # ML stuff
-from classifier_io import ClassifierModel
+from classifier_io import ClassifierModel # custom class for getting classifier weights from json
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import LeaveOneGroupOut, GridSearchCV
-from sklearn import __version__ as sklearn_version
-from sklearn.utils import parallel_backend
 from sklearn.metrics import roc_auc_score, roc_curve
-from statsmodels.stats.multitest import fdrcorrection
 from joblib.parallel import Parallel, delayed
 
 def norm_sess_feats(feats, n_lists):
