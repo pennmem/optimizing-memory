@@ -1,0 +1,11 @@
+# python caches and virtualenvs
+__pycache__/
+venv/
+
+# jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# R stuff
+.RData
+.Rhistory
+
