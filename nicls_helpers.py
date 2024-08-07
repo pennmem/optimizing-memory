@@ -29,28 +29,6 @@ from sklearn.metrics import roc_auc_score, roc_curve
 from joblib.parallel import Parallel, delayed
 
 
-def computeCV(full_pows, full_evs, c_list):
-    # Selecting overall parameter using nested CV, with LOLO cross validation to get scores for every
-    # parameter and session, then averaging across sessions and taking the paramter which yeilds the highest
-    # average AUC
-    all_scores = []
-    for sess in full_evs.session.unique():
-        out_mask = full_evs.session == sess
-        in_mask = ~out_mask
-        score_list = []
-        for c in c_list:
-            model = LogisticRegression(penalty="l2", C=c, solver="liblinear")
-            model.fit(full_pows[in_mask], full_evs[in_mask].recalled.astype(int))
-            probs = model.predict_proba(full_pows[out_mask])[:, 1]
-            score_list.append(
-                roc_auc_score(full_evs[out_mask].recalled.astype(int), probs)
-            )
-        all_scores.append(score_list)
-    # return scores matrix shaped sessions x hyperparameter
-    scores_mat = np.stack(all_scores)
-    return scores_mat
-
-
 def NestedLOGO(
     data,
     estimator,
@@ -152,6 +130,8 @@ def load_and_fit_data_encoding(path, group):
             encoding_data["session"].values * 10 + encoding_data["trial"].values,
         ),
     )
+    # first subsssion has town learning and is not included
+    # any practice trials are excluded too
     encoding_data = encoding_data.query({"event": "subsession>0 & trial>=0"})
     results = NestedLOGO(
         encoding_data, estimator, param_grid, inner_cv_group=group, outer_cv_group=group
@@ -254,6 +234,28 @@ def norm_sess_feats(feats, n_lists):
     std = feats.query(event=f"trial<{n_lists}").std("event", ddof=1)
     norm_pows = (feats - mu) / std
     return norm_pows
+
+
+def computeCV(full_pows, full_evs, c_list):
+    # Selecting overall parameter using nested CV, with LOLO cross validation to get scores for every
+    # parameter and session, then averaging across sessions and taking the paramter which yeilds the highest
+    # average AUC
+    all_scores = []
+    for sess in full_evs.session.unique():
+        out_mask = full_evs.session == sess
+        in_mask = ~out_mask
+        score_list = []
+        for c in c_list:
+            model = LogisticRegression(penalty="l2", C=c, solver="liblinear")
+            model.fit(full_pows[in_mask], full_evs[in_mask].recalled.astype(int))
+            probs = model.predict_proba(full_pows[out_mask])[:, 1]
+            score_list.append(
+                roc_auc_score(full_evs[out_mask].recalled.astype(int), probs)
+            )
+        all_scores.append(score_list)
+    # return scores matrix shaped sessions x hyperparameter
+    scores_mat = np.stack(all_scores)
+    return scores_mat
 
 
 def n_list_normalization(

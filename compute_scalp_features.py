@@ -139,6 +139,7 @@ def compute_scalp_features(
     feats = feats.assign_attrs(settings)
     suffix = "_feats.h5" if normalize else "_raw_feats.h5"
     if settings["save"]:
+        os.path.makedirs(save_path, exist_ok=True)
         feats.to_hdf(os.path.join(save_path, f"{subject}_{suffix}"))
     return feats
 
@@ -147,6 +148,6 @@ if __name__ == "__main__":
     compute_scalp_features(
         sys.argv[1],
         experiment="NiclsCourierClosedLoop",
-        save=True,
+        normalize=True,
         save_path="/scratch/nicls_intermediate/closed_loop/encoding_powers/",
     )
